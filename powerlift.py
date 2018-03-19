@@ -14,22 +14,39 @@ from sklearn import metrics
 pd.options.display.max_rows = 10
 pd.options.display.float_format = '{:.1f}'.format
 
-powerlifting_file = open("powerlifting-database/openpowerlifting.csv", "rb")
+powerlifting_file = open("powerlifting-database/cleanedlifting.csv", "rb")
 powerlifting_dataframe = pd.read_csv(powerlifting_file, sep=",")
 
 powerlifting_dataframe = powerlifting_dataframe.reindex(
     np.random.permutation(powerlifting_dataframe.index))
 
-powerlifting_dataframe = powerlifting_dataframe.dropna()
 
-
-def preprocess(powerlifting_dataframe):
-    selected_features = powerlifting_dataframe[
+def preprocess_features(dataframe):
+    selected_features = dataframe[
         ["Sex",
          "Equipment",
          "Age",
-         "Bodyweight",
+         "BodyweightKg",
          "BestSquatKg",
-         "BestBenchKg",
-         "BestDeadliftKg"]]
+         "BestBenchKg"]]
+    processed_features = selected_features.copy()
+    return processed_features
+
+
+def preprocess_targets(dataframe):
+    output_targets = pd.DataFrame()
+    output_targets["deadlift"] = dataframe["BestDeadliftKg"]
+    return output_targets
+
+
+training_examples = preprocess_features(powerlifting_dataframe.head(12000))
+training_targets = preprocess_targets(powerlifting_dataframe.head(12000))
+
+validation_examples = preprocess_features(powerlifting_dataframe.tail(5000))
+validation_targets = preprocess_targets(powerlifting_dataframe.tail(5000))
+
+print(validation_targets.head(3))
+
+
+
 

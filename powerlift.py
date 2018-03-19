@@ -10,7 +10,7 @@ from sklearn import metrics
 # import tensorflow as tf
 # from tensorflow.python.data import Dataset
 
-# tf.logging.set_verbosity(tf.logging.ERROR)
+# tf.logging.set_verbosity(tf.logging.ERROR
 pd.options.display.max_rows = 10
 pd.options.display.float_format = '{:.1f}'.format
 
@@ -21,7 +21,7 @@ powerlifting_dataframe = powerlifting_dataframe.reindex(
     np.random.permutation(powerlifting_dataframe.index))
 
 powerlifting_dataframe = powerlifting_dataframe.dropna()
-print(powerlifting_dataframe.head(3))
+
 
 def preprocess(powerlifting_dataframe):
     selected_features = powerlifting_dataframe[

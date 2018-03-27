@@ -7,6 +7,8 @@ import math
 import numpy as np
 import pandas as pd
 from sklearn import metrics
+
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 import tensorflow as tf
 from tensorflow.python.data import Dataset
 
@@ -16,6 +18,8 @@ pd.options.display.float_format = '{:.4f}'.format
 
 powerlifting_file = open("powerlifting-database/cleanedlifting.csv", "rb")
 powerlifting_dataframe = pd.read_csv(powerlifting_file, sep=",")
+
+ex = powerlifting_dataframe.tail(1).copy()
 
 powerlifting_dataframe = powerlifting_dataframe.reindex(
     np.random.permutation(powerlifting_dataframe.index))
@@ -48,9 +52,7 @@ def preprocess_features(dataframe):
 def preprocess_targets(dataframe):
     output_targets = pd.DataFrame()
     output_targets["deadlift"] = dataframe["BestDeadliftKg"]
-
-    output_targets["deadlift"] = linear_scale(output_targets["deadlift"])
-
+    # output_targets["deadlift"] = linear_scale(output_targets["deadlift"])
     return output_targets
 
 
@@ -59,6 +61,11 @@ def linear_scale(series):
   max_val = series.max()
   scale = (max_val - min_val) / 2.0
   return series.apply(lambda x: ((x - min_val) / scale) - 1.0)
+
+
+# def re_scale(series, min_val, max_val):
+#     scale = (max_val - min_val) / 2.0
+#     return np.apply_along_axis((lambda x: ((x + 1) * scale) + min_val), 0, series)
 
 
 training_examples = preprocess_features(powerlifting_dataframe.head(12000))
@@ -88,22 +95,23 @@ def my_input_fn(features, targets, batch_size=1, shuffle=True, num_epochs=None):
 def train_model(
     my_optimizer,
     steps,
-    batch_size,
     hidden_units,
+    batch_size,
     training_examples,
     training_targets,
     validation_examples,
     validation_targets):
-    periods = 10
+    periods = 1
     steps_per_period = steps / periods
 
     # Create a linear regressor object.
     my_optimizer = tf.contrib.estimator.clip_gradients_by_norm(my_optimizer, 5.0)
-    dnn_regressor = tf.estimator.DNNRegressor(
+    nn_regressor = tf.estimator.DNNRegressor(
         feature_columns=construct_feature_columns(training_examples),
         hidden_units=hidden_units,
         optimizer=my_optimizer,
-        activation_fn=tf.nn.relu)
+        activation_fn=tf.nn.relu
+    )
 
     # Create input functions
     training_input_fn = lambda: my_input_fn(training_examples,
@@ -126,16 +134,18 @@ def train_model(
     validation_rmse = []
     for period in range(0, periods):
         # Train the model, starting from the prior state.
-        dnn_regressor.train(
+        nn_regressor.train(
             input_fn=training_input_fn,
             steps=steps_per_period
         )
         # Take a break and compute predictions.
-        training_predictions = dnn_regressor.predict(input_fn=predict_training_input_fn)
+        training_predictions = nn_regressor.predict(input_fn=predict_training_input_fn)
         training_predictions = np.array([item['predictions'][0] for item in training_predictions])
+        training_predictions = training_predictions
 
-        validation_predictions = dnn_regressor.predict(input_fn=predict_validation_input_fn)
+        validation_predictions = nn_regressor.predict(input_fn=predict_validation_input_fn)
         validation_predictions = np.array([item['predictions'][0] for item in validation_predictions])
+        validation_predictions = validation_predictions
 
         # Compute training and validation loss.
         training_root_mean_squared_error = math.sqrt(
@@ -143,24 +153,30 @@ def train_model(
         validation_root_mean_squared_error = math.sqrt(
             metrics.mean_squared_error(validation_predictions, validation_targets))
         # Occasionally print the current loss.
-        print("  period %02d : %0.2f" % (period, training_root_mean_squared_error))
+        print("  period %02d : %0.8f" % (period, training_root_mean_squared_error))
         # Add the loss metrics from this period to our list.
         training_rmse.append(training_root_mean_squared_error)
         validation_rmse.append(validation_root_mean_squared_error)
     print("Model training finished.")
 
-    print("Final RMSE (on training data):   %0.2f" % training_root_mean_squared_error)
-    print("Final RMSE (on validation data): %0.2f" % validation_root_mean_squared_error)
+    print("Final RMSE (on training data):   %0.8f" % training_root_mean_squared_error)
+    print("Final RMSE (on validation data): %0.8f" % validation_root_mean_squared_error)
 
-    return dnn_regressor, training_rmse, validation_rmse
+    return nn_regressor, training_rmse, validation_rmse
 
-
-_ = train_model(
+model, _, _ = train_model(
     my_optimizer=tf.train.AdagradOptimizer(learning_rate=0.15),
-    steps=1000,
-    batch_size=50,
-    hidden_units=[10, 10],
+    steps=100,
+    hidden_units=[5, 5],
+    batch_size=32,
     training_examples=training_examples,
     training_targets=training_targets,
     validation_examples=validation_examples,
     validation_targets=validation_targets)
+
+print(type(model))
+
+ex_feat = preprocess_features(ex)
+ex_targ = preprocess_targets(ex)
+
+model.predict(input_fun=lambda: my_input_fn(ex_feat, ex_targ["deadlift"], num_epochs=1, shuffle=False))

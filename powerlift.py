@@ -1,19 +1,23 @@
-import tensorflow as tf
-import math
 import os
-from tensorflow.python.data import Dataset
+import math
 import numpy as np
 import pandas as pd
 from sklearn import metrics
+
+import tensorflow as tf
+from tensorflow.python.data import Dataset
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 tf.logging.set_verbosity(tf.logging.ERROR)
 pd.options.display.max_rows = 10
-pd.options.display.float_format = '{:.4f}'.format
+pd.options.display.float_format = '{:.2f}'.format
 
 powerlifting_file = open("powerlifting-database/cleanedlifting.csv", "rb")
 powerlifting_dataframe = pd.read_csv(powerlifting_file, sep=",")
+
+# Remove rows with negative values
+powerlifting_dataframe  = powerlifting_dataframe[(powerlifting_dataframe >= 0).all(1)]
 
 powerlifting_dataframe = powerlifting_dataframe.reindex(
 	np.random.permutation(powerlifting_dataframe.index))
@@ -57,11 +61,6 @@ def linear_scale(series):
 	return series.apply(lambda x: ((x - min_val) / scale) - 1.0)
 
 
-# def re_scale(series, min_val, max_val):
-#     scale = (max_val - min_val) / 2.0
-#     return np.apply_along_axis((lambda x: ((x + 1) * scale) + min_val), 0, series)
-
-
 training_examples = preprocess_features(powerlifting_dataframe.head(12000))
 training_targets = preprocess_targets(powerlifting_dataframe.head(12000))
 
@@ -95,7 +94,7 @@ def train_model(
 		training_targets,
 		validation_examples,
 		validation_targets):
-	periods = 1
+	periods = 10
 	steps_per_period = steps / periods
 
 	# Create a linear regressor object.
@@ -104,7 +103,7 @@ def train_model(
 		feature_columns=construct_feature_columns(training_examples),
 		hidden_units=hidden_units,
 		optimizer=my_optimizer,
-		activation_fn=tf.nn.relu
+		activation_fn=tf.nn.relu,
 	)
 
 	# Create input functions
@@ -162,8 +161,8 @@ def train_model(
 
 
 model, _, _ = train_model(
-	my_optimizer=tf.train.AdagradOptimizer(learning_rate=0.15),
-	steps=100,
+	my_optimizer=tf.train.AdamOptimizer(learning_rate=0.01),
+	steps=200,
 	hidden_units=[5, 5],
 	batch_size=32,
 	training_examples=training_examples,
@@ -173,6 +172,7 @@ model, _, _ = train_model(
 
 
 def result_for_one(model, ex_orig, ex_feat, ex_targ):
+	ex_orig.drop(ex_orig.columns[0], 1, inplace=True)
 	ex_input_fn = lambda: my_input_fn(ex_feat,
 	                                  ex_targ["deadlift"],
 	                                  num_epochs=1,
@@ -183,14 +183,10 @@ def result_for_one(model, ex_orig, ex_feat, ex_targ):
 
 	error = metrics.mean_absolute_error(validation_predictions, ex_targ)
 
-	print()
-	print("The target was: " + str(ex_targ["deadlift"].item()))
-
-	print("The predicted value was:" + str(validation_predictions))
-	print("The error for this example is: " + str(error))
-	print()
-	print("The features were: " + str(ex_orig))
-	print()
+	print("\nThe target was: {}\n".format(str(ex_targ["deadlift"].item())))
+	print("The predicted value was: {}".format(str(validation_predictions)))
+	print("The error for this example is: {}".format(str(error)))
+	print("The features were: {}\n".format(ex_orig.to_string(index=False)))
 
 
 powerlifting_dataframe.hist()

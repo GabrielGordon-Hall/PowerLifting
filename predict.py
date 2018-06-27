@@ -1,10 +1,11 @@
 import random
 import pandas as pd
-from dataloading import CSVDataset, ToTensor
 
 import torch
 import torch.nn as nn
 from torch.autograd import Variable
+
+from dataloading import CSVDataset, ToTensor
 
 
 def predict(model, input):

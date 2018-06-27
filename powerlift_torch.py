@@ -27,9 +27,10 @@ params = {
     'num_workers': 4
 }
 
-hyperparams = {
+hyper = {
     'input_size': 10,
-    'hidden_size': 100,
+    'hidden_size_a': 100,
+    'hidden_size_b': 50,
     'output_size': 1
 }
 
@@ -102,13 +103,11 @@ def train_model(model, criterion, optimiser, scheduler, num_epochs=25):
     return model
 
 
-input_size, hidden_size, output_size = hyperparams[
-    'input_size'], hyperparams['hidden_size'], hyperparams['output_size']
-
 model = nn.Sequential(
-    nn.Linear(input_size, hidden_size),
+    nn.Linear(hyper[
+        'input_size'], hyper['hidden_size_a']),
     nn.ReLU(),
-    nn.Linear(hidden_size, output_size)
+    nn.Linear(hyper['hidden_size_a'], hyper['output_size']),
 ).double()
 
 criterion = nn.MSELoss()

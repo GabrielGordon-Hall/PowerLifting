@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 import random
 import pandas as pd
 
@@ -8,8 +9,8 @@ from torch.autograd import Variable
 from dataloading import CSVDataset, ToTensor
 
 
-def predict(model, input):
-    features, target = input['features'], input['targets']
+def predict(model, sample):
+    features, target = sample
     print("Stats are {}".format(features))
     features, target = Variable(
         features, volatile=True), Variable(target, volatile=True)

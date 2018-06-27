@@ -16,7 +16,7 @@ class CSVDataset(Dataset):
         features = self.dataframe.iloc[idx, :-1].values
         features = features.astype('float').reshape(1, 10)
         targets = self.dataframe.iloc[idx, -1]
-        sample = {'features': features, 'targets': targets}
+        sample = (features, targets)
         if self.transform:
             sample = self.transform(sample)
         return sample
@@ -26,6 +26,6 @@ class ToTensor(object):
     """Convert ndarrays to Tensors"""
 
     def __call__(self, sample):
-        features, targets = sample['features'], sample['targets']
-        return {'features': torch.from_numpy(features),
-                'targets': torch.from_numpy(np.array(targets, ndmin=1, copy=False))}
+        features, targets = sample
+        return (torch.from_numpy(features),
+                torch.from_numpy(np.array(targets, ndmin=1, copy=False)))

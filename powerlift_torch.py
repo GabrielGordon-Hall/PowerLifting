@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 import time
 import copy
 import numpy as np
@@ -61,8 +62,7 @@ def train_model(model, criterion, optimiser, scheduler, num_epochs=25):
                 model.eval()
 
             running_loss = 0.0
-            for batch in dataloaders[phase]:
-                inputs, targets = batch['features'], batch['targets']
+            for inputs, targets in dataloaders[phase]:
                 # Zero the parameter gradients
                 optimiser.zero_grad()
 
